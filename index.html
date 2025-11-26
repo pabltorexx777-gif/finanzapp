@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanzApp - Seguimiento de Gastos Personales</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #232342;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #a78bfa;
+            --accent-tertiary: #7c3aed;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --sidebar-width: 280px;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Estilos de autenticación */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-primary), var(--accent-tertiary));
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, rgba(15, 15, 35, 0) 70%);
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .auth-form {
+            background: var(--bg-card);
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 420px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .auth-form h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.8rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-tertiary));
+            color: white;
+            border: none;
+            padding: 0.9rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: var(--transition);
+            width: 100%;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+        }
+        
+        .auth-links {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .auth-links a {
+            color: var(--accent-secondary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        /* Dashboard Styles */
+        .dashboard-container {
+            display: none;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            color: white;
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 100;
+        }
+        
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .sidebar-header h2 {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.9rem 1rem;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--accent-primary);
+        }
+        
+        .sidebar-menu i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 0.7rem 1.2rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+            border: 2px solid var(--accent-primary);
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.8rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-card.income::before {
+            background: linear-gradient(90deg, var(--success), #10b981);
+        }
+        
+        .stat-card.expenses::before {
+            background: linear-gradient(90deg, var(--danger), #ef4444);
+        }
+        
+        .stat-card.savings::before {
+            background: linear-gradient(90deg, var(--warning), #f59e0b);
+        }
+        
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-card {
+            background: var(--bg-card);
+            padding: 1.8rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .chart-card h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        .recent-transactions {
+            background: var(--bg-card);
+            padding: 1.8rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .recent-transactions h3 {
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        th {
+            background-color: rgba(255, 255, 255, 0.02);
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .transaction-income {
+            color: var(--success);
+            font-weight: 600;
+        }
+        
+        .transaction-expense {
+            color: var(--danger);
+            font-weight: 600;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-container {
+            background: var(--bg-card);
+            padding: 1.8rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+        
+        .goals-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .goal-card {
+            background: var(--bg-card);
+            padding: 1.8rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .goal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .goal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--warning), #f59e0b);
+        }
+        
+        .goal-progress {
+            height: 10px;
+            background-color: var(--bg-secondary);
+            border-radius: 5px;
+            margin: 1.2rem 0;
+            overflow: hidden;
+        }
+        
+        .goal-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--warning), #f59e0b);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1.2rem 1.8rem;
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--danger);
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            animation: slideInRight 0.3s ease;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .notification.warning {
+            border-left-color: var(--warning);
+        }
+        
+        .notification.success {
+            border-left-color: var(--success);
+        }
+        
+        @media (max-width: 1024px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .sidebar-header h2, .sidebar-menu span {
+                display: none;
+            }
+            
+            .sidebar-menu i {
+                margin-right: 0;
+                font-size: 1.3rem;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+                padding: 1.5rem;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .goals-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Página de Autenticación -->
+    <div id="auth-page" class="auth-container">
+        <div class="auth-form" id="login-form">
+            <h2>Iniciar Sesión</h2>
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" placeholder="tu@email.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Contraseña</label>
+                <input type="password" id="login-password" placeholder="••••••••">
+            </div>
+            <button class="btn" id="login-btn">Iniciar Sesión</button>
+            <div class="auth-links">
+                <a href="#" id="show-register">¿No tienes cuenta? Regístrate</a>
+            </div>
+        </div>
+        
+        <div class="auth-form" id="register-form" style="display: none;">
+            <h2>Crear Cuenta</h2>
+            <div class="form-group">
+                <label for="register-name">Nombre Completo</label>
+                <input type="text" id="register-name" placeholder="Tu nombre">
+            </div>
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" placeholder="tu@email.com">
+            </div>
+            <div class="form-group">
+                <label for="register-password">Contraseña</label>
+                <input type="password" id="register-password" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+                <label for="register-confirm">Confirmar Contraseña</label>
+                <input type="password" id="register-confirm" placeholder="••••••••">
+            </div>
+            <button class="btn btn-success" id="register-btn">Crear Cuenta</button>
+            <div class="auth-links">
+                <a href="#" id="show-login">¿Ya tienes cuenta? Inicia Sesión</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard Principal -->
+    <div id="dashboard" class="dashboard-container">
+        <!-- Barra Lateral -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-chart-line"></i> FinanzApp</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="menu-item active" data-section="dashboard-section"><i class="fas fa-home"></i> <span>Dashboard</span></a></li>
+                <li><a href="#" class="menu-item" data-section="transactions-section"><i class="fas fa-exchange-alt"></i> <span>Transacciones</span></a></li>
+                <li><a href="#" class="menu-item" data-section="goals-section"><i class="fas fa-bullseye"></i> <span>Metas de Ahorro</span></a></li>
+                <li><a href="#" class="menu-item" data-section="limits-section"><i class="fas fa-chart-pie"></i> <span>Límites de Gasto</span></a></li>
+                <li><a href="#" class="menu-item" data-section="reports-section"><i class="fas fa-file-alt"></i> <span>Reportes</span></a></li>
+                <li><a href="#" class="menu-item" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span></a></li>
+            </ul>
+        </div>
+        
+        <!-- Contenido Principal -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1 id="section-title">Dashboard</h1>
+                <div class="user-info">
+                    <img id="user-avatar" src="https://ui-avatars.com/api/?name=Usuario&background=8b5cf6&color=fff" alt="Usuario">
+                    <div>
+                        <div id="user-name">Usuario</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Ver perfil</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notificaciones -->
+            <div id="notification" class="notification">
+                <strong id="notification-title">Notificación</strong>
+                <p id="notification-message">Mensaje de notificación</p>
+            </div>
+            
+            <!-- Sección Dashboard -->
+            <div id="dashboard-section" class="section active">
+                <!-- Tarjetas de Estadísticas -->
+                <div class="stats-cards">
+                    <div class="stat-card income">
+                        <h3>Ingresos Totales</h3>
+                        <div class="value">$<span id="total-income">0.00</span></div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Este mes</div>
+                    </div>
+                    <div class="stat-card expenses">
+                        <h3>Gastos Totales</h3>
+                        <div class="value">$<span id="total-expenses">0.00</span></div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Este mes</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Balance</h3>
+                        <div class="value">$<span id="balance">0.00</span></div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Disponible</div>
+                    </div>
+                    <div class="stat-card savings">
+                        <h3>Ahorro Mensual</h3>
+                        <div class="value">$<span id="monthly-savings">0.00</span></div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Meta: $0.00</div>
+                    </div>
+                </div>
+                
+                <!-- Gráficas -->
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>Ingresos vs Gastos</h3>
+                        <div id="empty-chart-income" class="empty-state" style="display: block;">
+                            <i class="fas fa-chart-bar"></i>
+                            <h3>No hay datos para mostrar</h3>
+                            <p>Agrega transacciones para ver las gráficas</p>
+                        </div>
+                        <canvas id="incomeExpenseChart" height="250" style="display: none;"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Gastos por Categoría</h3>
+                        <div id="empty-chart-category" class="empty-state" style="display: block;">
+                            <i class="fas fa-chart-pie"></i>
+                            <h3>No hay datos para mostrar</h3>
+                            <p>Agrega gastos para ver las categorías</p>
+                        </div>
+                        <canvas id="expenseCategoryChart" height="250" style="display: none;"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Transacciones Recientes -->
+                <div class="recent-transactions">
+                    <h3>Transacciones Recientes</h3>
+                    <div id="empty-transactions" class="empty-state" style="display: block;">
+                        <i class="fas fa-exchange-alt"></i>
+                        <h3>No hay transacciones</h3>
+                        <p>Agrega tu primera transacción para comenzar</p>
+                    </div>
+                    <table id="recent-transactions-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-transactions">
+                            <!-- Las transacciones se cargarán aquí dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Sección Transacciones -->
+            <div id="transactions-section" class="section">
+                <div class="form-container">
+                    <h3>Agregar Nueva Transacción</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transaction-type">Tipo</label>
+                            <select id="transaction-type" class="form-control">
+                                <option value="income">Ingreso</option>
+                                <option value="expense">Gasto</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="transaction-amount">Monto</label>
+                            <input type="number" id="transaction-amount" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transaction-category">Categoría</label>
+                            <select id="transaction-category" class="form-control">
+                                <option value="salary">Salario</option>
+                                <option value="extra">Ingreso Extra</option>
+                                <option value="investment">Inversiones</option>
+                                <option value="comida">Comida</option>
+                                <option value="carro">Carro</option>
+                                <option value="entertainment">Entretenimiento</option>
+                                <option value="health">Salud</option>
+                                <option value="education">Educación</option>
+                                <option value="other">Otros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="transaction-date">Fecha</label>
+                            <input type="date" id="transaction-date">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="transaction-description">Descripción</label>
+                        <input type="text" id="transaction-description" placeholder="Descripción de la transacción">
+                    </div>
+                    <button class="btn" id="add-transaction-btn">Agregar Transacción</button>
+                </div>
+                
+                <div class="recent-transactions">
+                    <h3>Todas las Transacciones</h3>
+                    <div id="empty-all-transactions" class="empty-state" style="display: block;">
+                        <i class="fas fa-receipt"></i>
+                        <h3>No hay transacciones</h3>
+                        <p>Agrega tu primera transacción para comenzar</p>
+                    </div>
+                    <table id="all-transactions-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-transactions">
+                            <!-- Todas las transacciones se cargarán aquí dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Sección Metas de Ahorro -->
+            <div id="goals-section" class="section">
+                <div class="form-container">
+                    <h3>Crear Nueva Meta de Ahorro</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="goal-name">Nombre de la Meta</label>
+                            <input type="text" id="goal-name" placeholder="Ej: Vacaciones, Carro nuevo...">
+                        </div>
+                        <div class="form-group">
+                            <label for="goal-target">Monto Objetivo</label>
+                            <input type="number" id="goal-target" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="goal-deadline">Fecha Límite</label>
+                            <input type="date" id="goal-deadline">
+                        </div>
+                        <div class="form-group">
+                            <label for="goal-initial">Ahorro Inicial</label>
+                            <input type="number" id="goal-inicial" placeholder="0.00" value="0">
+                        </div>
+                    </div>
+                    <button class="btn btn-success" id="add-goal-btn">Crear Meta</button>
+                </div>
+                
+                <h3 style="margin-bottom: 1.5rem;">Mis Metas de Ahorro</h3>
+                <div id="empty-goals" class="empty-state" style="display: block;">
+                    <i class="fas fa-bullseye"></i>
+                    <h3>No tienes metas de ahorro</h3>
+                    <p>Crea tu primera meta para comenzar a ahorrar</p>
+                </div>
+                <div class="goals-container" id="goals-list">
+                    <!-- Las metas se cargarán aquí dinámicamente -->
+                </div>
+            </div>
+            
+            <!-- Sección Límites de Gasto -->
+            <div id="limits-section" class="section">
+                <div class="form-container">
+                    <h3>Establecer Límites de Gasto</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="limit-category">Categoría</label>
+                            <select id="limit-category" class="form-control">
+                                <option value="comida">Comida</option>
+                                <option value="carro">Carro</option>
+                                <option value="entertainment">Entretenimiento</option>
+                                <option value="health">Salud</option>
+                                <option value="education">Educación</option>
+                                <option value="other">Otros</option>
+                                <option value="total">Gasto Total</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="limit-amount">Límite Mensual</label>
+                            <input type="number" id="limit-amount" placeholder="0.00">
+                        </div>
+                    </div>
+                    <button class="btn btn-warning" id="add-limit-btn">Establecer Límite</button>
+                </div>
+                
+                <div class="recent-transactions">
+                    <h3>Mis Límites de Gasto</h3>
+                    <div id="empty-limits" class="empty-state" style="display: block;">
+                        <i class="fas fa-chart-pie"></i>
+                        <h3>No has establecido límites</h3>
+                        <p>Establece tu primer límite para controlar tus gastos</p>
+                    </div>
+                    <table id="limits-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Categoría</th>
+                                <th>Límite Mensual</th>
+                                <th>Gasto Actual</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="limits-list">
+                            <!-- Los límites se cargarán aquí dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Sección Reportes -->
+            <div id="reports-section" class="section">
+                <div class="form-container">
+                    <h3>Generar Reporte</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="report-type">Tipo de Reporte</label>
+                            <select id="report-type" class="form-control">
+                                <option value="monthly">Resumen Mensual</option>
+                                <option value="category">Gastos por Categoría</option>
+                                <option value="income-vs-expense">Ingresos vs Gastos</option>
+                                <option value="savings-progress">Progreso de Ahorro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="report-period">Período</label>
+                            <select id="report-period" class="form-control">
+                                <option value="current-month">Mes Actual</option>
+                                <option value="last-month">Mes Anterior</option>
+                                <option value="last-3-months">Últimos 3 Meses</option>
+                                <option value="last-6-months">Últimos 6 Meses</option>
+                                <option value="current-year">Año Actual</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="report-format">Formato</label>
+                            <select id="report-format" class="form-control">
+                                <option value="pdf">PDF</option>
+                                <option value="excel">Excel</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" id="generate-report-btn">Generar Reporte</button>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Reporte de Ingresos vs Gastos</h3>
+                    <div id="empty-report" class="empty-state" style="display: block;">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No hay datos para reportes</h3>
+                        <p>Agrega transacciones para generar reportes</p>
+                    </div>
+                    <canvas id="reportChart" height="300" style="display: none;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sistema de usuarios individuales
+        let currentUser = null;
+        let userData = {
+            name: "",
+            email: "",
+            transactions: [],
+            goals: [],
+            limits: []
+        };
+
+        // Elementos del DOM
+        const authPage = document.getElementById('auth-page');
+        const dashboard = document.getElementById('dashboard');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const showRegisterLink = document.getElementById('show-register');
+        const showLoginLink = document.getElementById('show-login');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const sections = document.querySelectorAll('.section');
+        const sectionTitle = document.getElementById('section-title');
+        const userName = document.getElementById('user-name');
+        const userAvatar = document.getElementById('user-avatar');
+        const notification = document.getElementById('notification');
+        const notificationTitle = document.getElementById('notification-title');
+        const notificationMessage = document.getElementById('notification-message');
+
+        // Verificar si hay un usuario logueado al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = savedUser;
+                loadUserData();
+                authPage.style.display = 'none';
+                dashboard.style.display = 'block';
+                userName.textContent = userData.name || currentUser.split('@')[0];
+                userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || currentUser.split('@')[0])}&background=8b5cf6&color=fff`;
+                initializeDashboard();
+            }
+            
+            // Establecer la fecha actual como valor predeterminado en los formularios
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('transaction-date').value = today;
+            document.getElementById('goal-deadline').value = today;
+        });
+
+        // Cargar datos del usuario desde localStorage
+        function loadUserData() {
+            if (currentUser) {
+                const savedData = localStorage.getItem(`finanzapp_data_${currentUser}`);
+                if (savedData) {
+                    userData = JSON.parse(savedData);
+                } else {
+                    // Datos iniciales vacíos para nuevo usuario
+                    userData = {
+                        name: "",
+                        email: currentUser,
+                        transactions: [],
+                        goals: [],
+                        limits: []
+                    };
+                    saveUserData();
+                }
+            }
+        }
+
+        // Guardar datos del usuario en localStorage
+        function saveUserData() {
+            if (currentUser) {
+                localStorage.setItem(`finanzapp_data_${currentUser}`, JSON.stringify(userData));
+            }
+        }
+
+        // Mostrar/ocultar formularios de autenticación
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        // Iniciar sesión
+        loginBtn.addEventListener('click', () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (email && password) {
+                // En una aplicación real, aquí se verificarían las credenciales
+                currentUser = email;
+                localStorage.setItem('currentUser', currentUser);
+                
+                loadUserData();
+                
+                authPage.style.display = 'none';
+                dashboard.style.display = 'block';
+                userName.textContent = userData.name || email.split('@')[0];
+                userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || email.split('@')[0])}&background=8b5cf6&color=fff`;
+                
+                showNotification('¡Bienvenido!', 'Has iniciado sesión correctamente.', 'success');
+                initializeDashboard();
+            } else {
+                showNotification('Error', 'Por favor, completa todos los campos.', 'warning');
+            }
+        });
+
+        // Registrarse
+        registerBtn.addEventListener('click', () => {
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirm = document.getElementById('register-confirm').value;
+            
+            if (name && email && password && confirm) {
+                if (password !== confirm) {
+                    showNotification('Error', 'Las contraseñas no coinciden.', 'warning');
+                    return;
+                }
+                
+                // Verificar si el usuario ya existe
+                if (localStorage.getItem(`finanzapp_data_${email}`)) {
+                    showNotification('Error', 'Ya existe una cuenta con este email.', 'warning');
+                    return;
+                }
+                
+                currentUser = email;
+                localStorage.setItem('currentUser', currentUser);
+                
+                // Crear datos iniciales vacíos para el nuevo usuario
+                userData = {
+                    name: name,
+                    email: email,
+                    transactions: [],
+                    goals: [],
+                    limits: []
+                };
+                saveUserData();
+                
+                authPage.style.display = 'none';
+                dashboard.style.display = 'block';
+                userName.textContent = name;
+                userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8b5cf6&color=fff`;
+                
+                showNotification('¡Cuenta creada!', 'Tu cuenta ha sido creada exitosamente.', 'success');
+                initializeDashboard();
+                
+                // Cambiar al formulario de login para futuros accesos
+                registerForm.style.display = 'none';
+                loginForm.style.display = 'block';
+                
+                // Limpiar formulario de registro
+                document.getElementById('register-name').value = '';
+                document.getElementById('register-email').value = '';
+                document.getElementById('register-password').value = '';
+                document.getElementById('register-confirm').value = '';
+            } else {
+                showNotification('Error', 'Por favor, completa todos los campos.', 'warning');
+            }
+        });
+
+        // Cerrar sesión
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            currentUser = null;
+            userData = {
+                name: "",
+                email: "",
+                transactions: [],
+                goals: [],
+                limits: []
+            };
+            
+            dashboard.style.display = 'none';
+            authPage.style.display = 'flex';
+            
+            // Limpiar formularios
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+        });
+
+        // Navegación entre secciones
+        menuItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Si es el botón de cerrar sesión, no hacer nada más
+                if (item.id === 'logout-btn') return;
+                
+                // Remover clase active de todos los items del menú
+                menuItems.forEach(i => i.classList.remove('active'));
+                
+                // Agregar clase active al item clickeado
+                item.classList.add('active');
+                
+                // Ocultar todas las secciones
+                sections.forEach(section => section.classList.remove('active'));
+                
+                // Mostrar la sección correspondiente
+                const sectionId = item.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+                
+                // Actualizar el título de la sección
+                sectionTitle.textContent = item.querySelector('span').textContent;
+                
+                // Actualizar contenido específico de la sección
+                if (sectionId === 'transactions-section') {
+                    loadTransactions();
+                } else if (sectionId === 'goals-section') {
+                    loadGoals();
+                } else if (sectionId === 'limits-section') {
+                    loadLimits();
+                } else if (sectionId === 'reports-section') {
+                    generateReportChart();
+                }
+            });
+        });
+
+        // Función para mostrar notificaciones
+        function showNotification(title, message, type = 'info') {
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        // Inicializar el dashboard
+        function initializeDashboard() {
+            updateStats();
+            createCharts();
+            loadRecentTransactions();
+            setupEventListeners();
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            const totalIncome = userData.transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const totalExpenses = userData.transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            document.getElementById('total-income').textContent = totalIncome.toFixed(2);
+            document.getElementById('total-expenses').textContent = totalExpenses.toFixed(2);
+            document.getElementById('balance').textContent = (totalIncome - totalExpenses).toFixed(2);
+            
+            // Calcular ahorro mensual (suponiendo un 20% de los ingresos como meta de ahorro)
+            const savingsGoal = totalIncome * 0.2;
+            const currentSavings = Math.min(savingsGoal, totalIncome - totalExpenses);
+            document.getElementById('monthly-savings').textContent = currentSavings.toFixed(2);
+        }
+
+        // Crear gráficas
+        function createCharts() {
+            // Destruir gráficas anteriores si existen
+            if (window.incomeExpenseChartInstance) {
+                window.incomeExpenseChartInstance.destroy();
+            }
+            if (window.expenseCategoryChartInstance) {
+                window.expenseCategoryChartInstance.destroy();
+            }
+            
+            // Verificar si hay datos para mostrar
+            if (userData.transactions.length === 0) {
+                document.getElementById('empty-chart-income').style.display = 'block';
+                document.getElementById('incomeExpenseChart').style.display = 'none';
+                document.getElementById('empty-chart-category').style.display = 'block';
+                document.getElementById('expenseCategoryChart').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar gráficas
+            document.getElementById('empty-chart-income').style.display = 'none';
+            document.getElementById('incomeExpenseChart').style.display = 'block';
+            document.getElementById('empty-chart-category').style.display = 'none';
+            document.getElementById('expenseCategoryChart').style.display = 'block';
+            
+            // Gráfica de Ingresos vs Gastos
+            const incomeExpenseCtx = document.getElementById('incomeExpenseChart').getContext('2d');
+            window.incomeExpenseChartInstance = new Chart(incomeExpenseCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: '#10b981',
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'Gastos',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: '#ef4444',
+                            borderRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f8fafc'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfica de Gastos por Categoría
+            const expenseCategoryCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+            
+            // Calcular gastos por categoría
+            const categories = {
+                comida: 0,
+                carro: 0,
+                entertainment: 0,
+                health: 0,
+                education: 0,
+                other: 0
+            };
+            
+            userData.transactions
+                .filter(t => t.type === 'expense')
+                .forEach(t => {
+                    if (categories.hasOwnProperty(t.category)) {
+                        categories[t.category] += t.amount;
+                    } else {
+                        categories.other += t.amount;
+                    }
+                });
+            
+            window.expenseCategoryChartInstance = new Chart(expenseCategoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Comida', 'Carro', 'Entretenimiento', 'Salud', 'Educación', 'Otros'],
+                    datasets: [{
+                        data: [
+                            categories.comida,
+                            categories.carro,
+                            categories.entertainment,
+                            categories.health,
+                            categories.education,
+                            categories.other
+                        ],
+                        backgroundColor: [
+                            '#8b5cf6',
+                            '#10b981',
+                            '#ef4444',
+                            '#f59e0b',
+                            '#3b82f6',
+                            '#94a3b8'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#f8fafc',
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Cargar transacciones recientes
+        function loadRecentTransactions() {
+            const tbody = document.getElementById('recent-transactions');
+            tbody.innerHTML = '';
+            
+            // Verificar si hay transacciones
+            if (userData.transactions.length === 0) {
+                document.getElementById('empty-transactions').style.display = 'block';
+                document.getElementById('recent-transactions-table').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar tabla de transacciones
+            document.getElementById('empty-transactions').style.display = 'none';
+            document.getElementById('recent-transactions-table').style.display = 'table';
+            
+            // Ordenar transacciones por fecha (más recientes primero) y tomar las últimas 5
+            const recentTransactions = [...userData.transactions]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 5);
+            
+            recentTransactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                
+                const date = new Date(transaction.date);
+                const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+                
+                const categoryNames = {
+                    salary: 'Salario',
+                    extra: 'Ingreso Extra',
+                    investment: 'Inversiones',
+                    comida: 'Comida',
+                    carro: 'Carro',
+                    entertainment: 'Entretenimiento',
+                    health: 'Salud',
+                    education: 'Educación',
+                    other: 'Otros'
+                };
+                
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${transaction.description}</td>
+                    <td>${categoryNames[transaction.category]}</td>
+                    <td class="${transaction.type === 'income' ? 'transaction-income' : 'transaction-expense'}">
+                        ${transaction.type === 'income' ? '+' : '-'}$${transaction.amount.toFixed(2)}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Configurar event listeners para las funcionalidades
+        function setupEventListeners() {
+            // Agregar transacción
+            document.getElementById('add-transaction-btn').addEventListener('click', addTransaction);
+            
+            // Agregar meta
+            document.getElementById('add-goal-btn').addEventListener('click', addGoal);
+            
+            // Agregar límite
+            document.getElementById('add-limit-btn').addEventListener('click', addLimit);
+            
+            // Generar reporte
+            document.getElementById('generate-report-btn').addEventListener('click', generateReport);
+        }
+
+        // Agregar transacción
+        function addTransaction() {
+            const type = document.getElementById('transaction-type').value;
+            const amount = parseFloat(document.getElementById('transaction-amount').value);
+            const category = document.getElementById('transaction-category').value;
+            const date = document.getElementById('transaction-date').value;
+            const description = document.getElementById('transaction-description').value;
+            
+            if (!amount || !date || !description) {
+                showNotification('Error', 'Por favor, completa todos los campos.', 'warning');
+                return;
+            }
+            
+            const newTransaction = {
+                id: userData.transactions.length + 1,
+                type,
+                category,
+                amount,
+                description,
+                date
+            };
+            
+            userData.transactions.push(newTransaction);
+            
+            // Limpiar formulario
+            document.getElementById('transaction-amount').value = '';
+            document.getElementById('transaction-description').value = '';
+            document.getElementById('transaction-date').value = '';
+            
+            // Actualizar la interfaz
+            updateStats();
+            createCharts();
+            loadRecentTransactions();
+            
+            if (document.getElementById('transactions-section').classList.contains('active')) {
+                loadTransactions();
+            }
+            
+            showNotification('Transacción agregada', 'La transacción se ha agregado correctamente.', 'success');
+            saveUserData();
+            checkSpendingLimits();
+        }
+
+        // Cargar todas las transacciones
+        function loadTransactions() {
+            const tbody = document.getElementById('all-transactions');
+            tbody.innerHTML = '';
+            
+            // Verificar si hay transacciones
+            if (userData.transactions.length === 0) {
+                document.getElementById('empty-all-transactions').style.display = 'block';
+                document.getElementById('all-transactions-table').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar tabla de transacciones
+            document.getElementById('empty-all-transactions').style.display = 'none';
+            document.getElementById('all-transactions-table').style.display = 'table';
+            
+            // Ordenar transacciones por fecha (más recientes primero)
+            const sortedTransactions = [...userData.transactions]
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const categoryNames = {
+                salary: 'Salario',
+                extra: 'Ingreso Extra',
+                investment: 'Inversiones',
+                comida: 'Comida',
+                carro: 'Carro',
+                entertainment: 'Entretenimiento',
+                health: 'Salud',
+                education: 'Educación',
+                other: 'Otros'
+            };
+            
+            const typeNames = {
+                income: 'Ingreso',
+                expense: 'Gasto'
+            };
+            
+            sortedTransactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                
+                const date = new Date(transaction.date);
+                const formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+                
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${transaction.description}</td>
+                    <td>${categoryNames[transaction.category]}</td>
+                    <td>${typeNames[transaction.type]}</td>
+                    <td class="${transaction.type === 'income' ? 'transaction-income' : 'transaction-expense'}">
+                        ${transaction.type === 'income' ? '+' : '-'}$${transaction.amount.toFixed(2)}
+                    </td>
+                    <td>
+                        <button class="btn btn-warning" onclick="deleteTransaction(${transaction.id})" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Eliminar</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Eliminar transacción
+        function deleteTransaction(id) {
+            userData.transactions = userData.transactions.filter(t => t.id !== id);
+            loadTransactions();
+            updateStats();
+            createCharts();
+            loadRecentTransactions();
+            showNotification('Transacción eliminada', 'La transacción se ha eliminado correctamente.', 'success');
+            saveUserData();
+        }
+
+        // Agregar meta de ahorro
+        function addGoal() {
+            const name = document.getElementById('goal-name').value;
+            const target = parseFloat(document.getElementById('goal-target').value);
+            const deadline = document.getElementById('goal-deadline').value;
+            const initial = parseFloat(document.getElementById('goal-inicial').value) || 0;
+            
+            if (!name || !target || !deadline) {
+                showNotification('Error', 'Por favor, completa todos los campos obligatorios.', 'warning');
+                return;
+            }
+            
+            const newGoal = {
+                id: userData.goals.length + 1,
+                name,
+                target,
+                current: initial,
+                deadline
+            };
+            
+            userData.goals.push(newGoal);
+            
+            // Limpiar formulario
+            document.getElementById('goal-name').value = '';
+            document.getElementById('goal-target').value = '';
+            document.getElementById('goal-deadline').value = '';
+            document.getElementById('goal-inicial').value = '0';
+            
+            // Actualizar la interfaz
+            loadGoals();
+            
+            showNotification('Meta creada', 'La meta de ahorro se ha creado correctamente.', 'success');
+            saveUserData();
+        }
+
+        // Cargar metas
+        function loadGoals() {
+            const container = document.getElementById('goals-list');
+            container.innerHTML = '';
+            
+            // Verificar si hay metas
+            if (userData.goals.length === 0) {
+                document.getElementById('empty-goals').style.display = 'block';
+                container.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar metas
+            document.getElementById('empty-goals').style.display = 'none';
+            container.style.display = 'grid';
+            
+            userData.goals.forEach(goal => {
+                const progress = (goal.current / goal.target) * 100;
+                const deadline = new Date(goal.deadline);
+                const formattedDeadline = `${deadline.getDate()}/${deadline.getMonth() + 1}/${deadline.getFullYear()}`;
+                
+                const goalCard = document.createElement('div');
+                goalCard.className = 'goal-card';
+                goalCard.innerHTML = `
+                    <h4 style="margin-bottom: 1rem; font-size: 1.2rem;">${goal.name}</h4>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="color: var(--text-secondary);">Objetivo: $${goal.target.toFixed(2)}</span>
+                        <span style="color: var(--text-secondary);">Actual: $${goal.current.toFixed(2)}</span>
+                    </div>
+                    <div class="goal-progress">
+                        <div class="goal-progress-bar" style="width: ${progress}%"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+                        <span>${progress.toFixed(1)}% completado</span>
+                        <span>Vence: ${formattedDeadline}</span>
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+                        <button class="btn" onclick="addToGoal(${goal.id})" style="padding: 0.6rem 1rem; font-size: 0.8rem; flex: 1;">Agregar Ahorro</button>
+                        <button class="btn btn-warning" onclick="deleteGoal(${goal.id})" style="padding: 0.6rem 1rem; font-size: 0.8rem;">Eliminar</button>
+                    </div>
+                `;
+                
+                container.appendChild(goalCard);
+            });
+        }
+
+        // Agregar ahorro a una meta
+        function addToGoal(goalId) {
+            const goal = userData.goals.find(g => g.id === goalId);
+            if (!goal) return;
+            
+            const amount = parseFloat(prompt(`¿Cuánto quieres agregar a "${goal.name}"?`));
+            if (amount && amount > 0) {
+                goal.current += amount;
+                loadGoals();
+                showNotification('Ahorro agregado', `Se agregaron $${amount.toFixed(2)} a tu meta.`, 'success');
+                saveUserData();
+                
+                // Verificar si se alcanzó la meta
+                if (goal.current >= goal.target) {
+                    showNotification('¡Meta alcanzada!', `Felicidades, has alcanzado tu meta de ahorro: ${goal.name}`, 'success');
+                }
+            }
+        }
+
+        // Eliminar meta
+        function deleteGoal(goalId) {
+            userData.goals = userData.goals.filter(g => g.id !== goalId);
+            loadGoals();
+            showNotification('Meta eliminada', 'La meta de ahorro se ha eliminado correctamente.', 'success');
+            saveUserData();
+        }
+
+        // Agregar límite de gasto
+        function addLimit() {
+            const category = document.getElementById('limit-category').value;
+            const limit = parseFloat(document.getElementById('limit-amount').value);
+            
+            if (!limit) {
+                showNotification('Error', 'Por favor, ingresa un límite válido.', 'warning');
+                return;
+            }
+            
+            // Verificar si ya existe un límite para esta categoría
+            const existingLimitIndex = userData.limits.findIndex(l => l.category === category);
+            
+            if (existingLimitIndex !== -1) {
+                userData.limits[existingLimitIndex].limit = limit;
+            } else {
+                const newLimit = {
+                    id: userData.limits.length + 1,
+                    category,
+                    limit,
+                    current: 0
+                };
+                userData.limits.push(newLimit);
+            }
+            
+            // Limpiar formulario
+            document.getElementById('limit-amount').value = '';
+            
+            // Actualizar la interfaz
+            loadLimits();
+            
+            showNotification('Límite establecido', 'El límite de gasto se ha establecido correctamente.', 'success');
+            saveUserData();
+        }
+
+        // Cargar límites
+        function loadLimits() {
+            const tbody = document.getElementById('limits-list');
+            tbody.innerHTML = '';
+            
+            // Verificar si hay límites
+            if (userData.limits.length === 0) {
+                document.getElementById('empty-limits').style.display = 'block';
+                document.getElementById('limits-table').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar tabla de límites
+            document.getElementById('empty-limits').style.display = 'none';
+            document.getElementById('limits-table').style.display = 'table';
+            
+            // Calcular gastos actuales por categoría
+            const currentSpending = {
+                comida: 0,
+                carro: 0,
+                entertainment: 0,
+                health: 0,
+                education: 0,
+                other: 0,
+                total: 0
+            };
+            
+            userData.transactions
+                .filter(t => t.type === 'expense')
+                .forEach(t => {
+                    if (currentSpending.hasOwnProperty(t.category)) {
+                        currentSpending[t.category] += t.amount;
+                    } else {
+                        currentSpending.other += t.amount;
+                    }
+                    currentSpending.total += t.amount;
+                });
+            
+            const categoryNames = {
+                comida: 'Comida',
+                carro: 'Carro',
+                entertainment: 'Entretenimiento',
+                health: 'Salud',
+                education: 'Educación',
+                other: 'Otros',
+                total: 'Gasto Total'
+            };
+            
+            userData.limits.forEach(limit => {
+                const row = document.createElement('tr');
+                
+                // Actualizar gasto actual
+                limit.current = currentSpending[limit.category] || 0;
+                
+                const percentage = (limit.current / limit.limit) * 100;
+                let status = 'Dentro del límite';
+                let statusClass = 'transaction-income';
+                
+                if (percentage >= 80 && percentage < 100) {
+                    status = 'Cerca del límite';
+                    statusClass = 'transaction-warning';
+                } else if (percentage >= 100) {
+                    status = 'Límite excedido';
+                    statusClass = 'transaction-expense';
+                }
+                
+                row.innerHTML = `
+                    <td>${categoryNames[limit.category]}</td>
+                    <td>$${limit.limit.toFixed(2)}</td>
+                    <td>$${limit.current.toFixed(2)}</td>
+                    <td class="${statusClass}">${status}</td>
+                    <td>
+                        <button class="btn btn-warning" onclick="deleteLimit(${limit.id})" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Eliminar</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Eliminar límite
+        function deleteLimit(limitId) {
+            userData.limits = userData.limits.filter(l => l.id !== limitId);
+            loadLimits();
+            showNotification('Límite eliminado', 'El límite de gasto se ha eliminado correctamente.', 'success');
+            saveUserData();
+        }
+
+        // Verificar límites de gasto
+        function checkSpendingLimits() {
+            // Calcular gastos actuales por categoría
+            const currentSpending = {
+                comida: 0,
+                carro: 0,
+                entertainment: 0,
+                health: 0,
+                education: 0,
+                other: 0,
+                total: 0
+            };
+            
+            userData.transactions
+                .filter(t => t.type === 'expense')
+                .forEach(t => {
+                    if (currentSpending.hasOwnProperty(t.category)) {
+                        currentSpending[t.category] += t.amount;
+                    } else {
+                        currentSpending.other += t.amount;
+                    }
+                    currentSpending.total += t.amount;
+                });
+            
+            // Verificar cada límite
+            userData.limits.forEach(limit => {
+                const percentage = (currentSpending[limit.category] / limit.limit) * 100;
+                
+                if (percentage >= 80 && percentage < 100) {
+                    showNotification(
+                        'Límite de gasto cercano', 
+                        `Tu gasto en ${limit.category} está cerca de alcanzar el límite establecido.`, 
+                        'warning'
+                    );
+                } else if (percentage >= 100) {
+                    showNotification(
+                        'Límite de gasto excedido', 
+                        `Has excedido tu límite de gasto en ${limit.category}.`, 
+                        'warning'
+                    );
+                }
+            });
+        }
+
+        // Generar reporte
+        function generateReport() {
+            const type = document.getElementById('report-type').value;
+            const period = document.getElementById('report-period').value;
+            const format = document.getElementById('report-format').value;
+            
+            // Verificar si hay datos para reportes
+            if (userData.transactions.length === 0) {
+                showNotification('Error', 'No hay datos para generar reportes.', 'warning');
+                return;
+            }
+            
+            // Simular descarga de reporte
+            const reportContent = `Reporte FinanzApp\nTipo: ${type}\nPeríodo: ${period}\nFormato: ${format}\n\nEste es un reporte de ejemplo. En una implementación real, aquí estarían tus datos.`;
+            
+            const blob = new Blob([reportContent], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reporte_finanzapp_${type}_${period}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Reporte generado', `El reporte se ha descargado en formato ${format.toUpperCase()}.`, 'success');
+        }
+
+        // Generar gráfica para reportes
+        function generateReportChart() {
+            const ctx = document.getElementById('reportChart').getContext('2d');
+            
+            // Verificar si hay datos para reportes
+            if (userData.transactions.length === 0) {
+                document.getElementById('empty-report').style.display = 'block';
+                document.getElementById('reportChart').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar gráfica de reportes
+            document.getElementById('empty-report').style.display = 'none';
+            document.getElementById('reportChart').style.display = 'block';
+            
+            // Destruir gráfica anterior si existe
+            if (window.reportChartInstance) {
+                window.reportChartInstance.destroy();
+            }
+            
+            window.reportChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Gastos',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Ahorro',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f8fafc'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Hacer las funciones globales para que puedan ser llamadas desde los botones
+        window.deleteTransaction = deleteTransaction;
+        window.addToGoal = addToGoal;
+        window.deleteGoal = deleteGoal;
+        window.deleteLimit = deleteLimit;
+    </script>
+</body>
+</html>
